@@ -17,7 +17,7 @@ def get_db():
     finally:
         db.close()
 
-# 🚀 BUG FIX 1: THE GHOST BUSTER CONNECTION MANAGER
+# 🚀 THE GHOST BUSTER CONNECTION MANAGER
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -34,13 +34,10 @@ class ConnectionManager:
         dead_connections = []
         for connection in self.active_connections:
             try:
-                # Sirf zinda connections ko message bhejo
                 await connection.send_text(message)
             except Exception:
-                # Agar koi Ghost mile toh usay list mein daal do
                 dead_connections.append(connection)
         
-        # Saare Ghosts ko system se nikal bahar karo!
         for dead in dead_connections:
             if dead in self.active_connections:
                 self.active_connections.remove(dead)
@@ -346,6 +343,7 @@ html_app = f"""
         }} catch(e) {{ showToast("Network Error", true); }}
     }}
 
+    // 🚀 THE WSS SECURITY FIX (AUTO-DETECTS HTTPS OR HTTP)
     async function openChatRoom(fId, fName, fGender) {{
         currentFriendId = fId;
         document.getElementById('chat_name').innerText = fName;
@@ -375,9 +373,10 @@ html_app = f"""
             chatBox.innerHTML = '<div style="text-align:center; color:#EF4444; font-size:12px; margin-bottom:20px;">Failed to load history!</div>';
         }}
 
-        // 2. New Clean Live Connection
+        // 2. 🚀 MAGIC WSS CONNECTION (Secure Chat Engine)
         if(myChatWs) myChatWs.close();
-        myChatWs = new WebSocket("ws://" + window.location.host + "/ws/" + myPublicId);
+        let wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        myChatWs = new WebSocket(wsProtocol + window.location.host + "/ws/" + myPublicId);
         
         myChatWs.onmessage = function(event) {{
             let msgData = JSON.parse(event.data);
@@ -398,7 +397,6 @@ html_app = f"""
         event.preventDefault();
         let input = document.getElementById('msg_val');
         
-        // 🚀 FIX: Ab sure karenge ke websocket properly OPEN state mein hai tabhi bheje!
         if(input.value.trim() !== "" && myChatWs && myChatWs.readyState === WebSocket.OPEN) {{
             let payload = {{
                 receiver: currentFriendId,
@@ -451,7 +449,7 @@ async def get_history(my_id: str, friend_id: str, db: Session = Depends(get_db))
     
     return {"status": "success", "messages": [{"sender": m.sender_id, "text": m.text} for m in messages]}
 
-# 🚀 BUG FIX 2: PREVENT SQLITE LOCKS (Try-Except-Finally Engine)
+# DB PREVENT LOCKS ENGINE
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await manager.connect(websocket)
@@ -463,7 +461,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 receiver_id = msg_data.get("receiver")
                 text = msg_data.get("text")
                 
-                # DB write with absolute safety lock
                 db = SessionLocal()
                 try:
                     new_msg = Message(sender_id=client_id, receiver_id=receiver_id, text=text)
